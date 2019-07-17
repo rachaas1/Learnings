@@ -1,0 +1,107 @@
+---
+title: "Practical Machine Learning Project Work"
+author: "Ashok Rachakonda"
+date: "July 17, 2019"
+output: html_document
+---
+
+```{r knitr_options, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem Statement:
+The goal of your project is to predict the manner in which they did the exercise
+
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants
+
+## High level Solution/Methodology
+We need to predict 'classe' variable which has 5 different classes. This is a classification problem with 5 different classes with Labels. We can use the following algorithms.
+1. Random forest, 2. Decision trees, 3. Gradient descent, 4. mutli-class logistic regression, 5. SVM, 6. Naive Bayes
+
+Any of the above model with 90% above accuracy and sensitivity and specificity would be a great model for prediction.
+
+
+```{r load r libraries and datasets, include=FALSE}
+library(caret)
+library(randomForest)
+training <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"),header=TRUE)
+testing <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"),header=TRUE)
+str(training)
+dim(training)
+```
+
+## Data cleaning 
+As the data for building the model is ~20K is sufficient to build most of the models.
+The training data shows many features with NA and and very less data. Also there are many features having no/very less variation in the data. We are removing these feature during the data cleaning process.
+
+First two variables contains ID, and Name. It is not required to be included in the training as well as testing data
+
+```{r data cleaning}
+# Remove ID & Name
+training <- training[,-1:-2]
+training <- training[,-nearZeroVar(training)]
+
+# remove variables that are almost always NA
+naFeatures <- sapply(training, function(x) mean(is.na(x))) > 0.95
+training <- training[,naFeatures==F]
+
+#number of observations & features after cleaning the data
+dim(training)
+
+# Remove ID & Name
+testing <- testing[,-1:-2]
+testing <- testing[,-nearZeroVar(testing)]
+
+# remove variables that are almost always NA
+naFeatures <- sapply(testing, function(x) mean(is.na(x))) > 0.95
+testing <- testing[,naFeatures==F]
+
+
+```
+
+
+## Create datasets and build a machine learning model and Cross Validation using 3 fold Cross Validation
+
+I would like to start building the model using Random forest. Also prepare a train and test dataset by spliting the data into 70% for training the model, and 30% data for testing/ Validation of the model.
+
+I would like use a 3 fold Cross Validation to avoid overfitting
+
+```{r Model building and k-fold-cross validation}
+inTrain <- createDataPartition(training$classe,p=0.7,list=FALSE)
+train <- training[inTrain,]
+test <- training[-inTrain,]
+
+
+# 3 fold cross validation
+kfoldVal <- trainControl(method="cv", number=3, verboseIter=F)
+fit <- train(classe ~ ., data=train, method="rf", trControl=kfoldVal)
+fit$finalModel
+
+```
+
+## Model Validation on the test data
+Random forest generated 500 trees using 38 variables and overall error rate is 0.09% which is very accurate model.
+Model Validation on the test data which is 30% of the training data
+
+```{r validation on the test dataset}
+predMod <- predict(fit, newdata=test)
+confusionMatrix(test$classe, predMod)
+#Overall model accuracy is 99.81% which could be a best model keeping sensitivity & specificity >=99%
+
+```
+## Results of Validation
+
+Model Validation provides 99.93% accuracy with Sensitivity and Specification both are above 99.7% with a error rate of 0.07% which is a great.
+
+Since Random forest is providing very good results, we may not need to explore into other models.
+
+
+## Prediction on the Testing dataset provided for 20 obseravtions
+
+
+```{r prediction on the testing dataset, echo=FALSE}
+predMod <- predict(fit, newdata=testing)
+print(predMod)
+```
+
