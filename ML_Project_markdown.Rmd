@@ -26,12 +26,13 @@ str(training)
 ##Load libraries
 library(caret)
 
+# Let us create a train and test dataset using 70% data for training and 30% for testing.
 inTrain <- createDataPartition(training$classe,p=0.7,list=FALSE)
 train <- training[inTrain,]
 test <- training[-inTrain,]
 
-# The dataset contains many NAs and it may contain near zero variences. remove unncessessary features.
-# Remove first 2 features since they 
+# The dataset contains many NAs and it may contain near zero variences. Remove features with >95% NAs
+# Remove first 2 features since they are IDs & Name.
 
 train <- train[,-1:-2]
 train <- train[,-nearZeroVar(train)]
@@ -40,27 +41,30 @@ train <- train[,-nearZeroVar(train)]
 naFeatures <- sapply(train, function(x) mean(is.na(x))) > 0.95
 train <- train[,naFeatures==F]
 
+### Train the model using Random Forest to start with. 
 
 library(randomForest)
-# 3 fold cross validation
+# Use 3 fold cross validation to keep the solution to very simple to begin with
 kfoldVal <- trainControl(method="cv", number=3, verboseIter=F)
 fit <- train(classe ~ ., data=train, method="rf", trControl=kfoldVal)
 fit$finalModel
 
-### Model evaluation on the test data
+### Model evaluation on the test data preared from the given training data to verify the accuracy of the model
 test <- test[,-1:-2]
 test <- test[,-nearZeroVar(test)]
 
-# remove variables that are almost always NA
+# Apply similar conditions as it was applied for the training data to remove features with no variation & NAs
 naFeatures <- sapply(test, function(x) mean(is.na(x))) > 0.95
 test <- test[,naFeatures==F]
 
 predMod <- predict(fit, newdata=test)
 confusionMatrix(test$classe, predMod)
 
-#Overall model accuracy is 99.81% which could be a best model keeping sensitivity & specificity >=99%
+#Overall model accuracy is 99.81% which is a very good model keeping sensitivity & specificity >=99%. Hence it is not required to look into other models.
+#The out of sample error is 0.02%
 
 #Predict the testing document
+# Apply similar conditions as it was applied for the training data to remove features with no variation & NAs
 testing <- testing[,-1:-2]
 testing <- testing[,-nearZeroVar(testing)]
 
